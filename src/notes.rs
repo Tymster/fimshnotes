@@ -28,10 +28,15 @@ impl Notes {
         })
     }
     pub fn new_note(&self, name: &str) -> Result<()> {
+        println!("BALLS in {}", self.path.join(name).display());
         if !PathBuf::from(name).exists() {
             File::create(format!("{}/{name}.md", self.path.to_str().unwrap()))?;
             return Ok(());
         }
         Err("Note with that name already exsits".into())
+    }
+    pub fn new_folder(&self, name: &str) -> Result<()> {
+        create_dir(self.path.join(name))?;
+        Ok(())
     }
 }
