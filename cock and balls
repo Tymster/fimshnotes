@@ -1,0 +1,99 @@
+// #[derive(Debug, Clone)]
+// enum TodoMessage {
+//     Loaded,
+//     New,
+//     Check(String),
+//     Update(String),
+// }
+// struct Todo {
+//     name: String,
+//     checked: bool,
+// }
+// struct TodoList {
+//     todos: Vec<Todo>,
+//     value: String,
+// }
+// impl iced::Application for TodoList {
+//     type Message = TodoMessage;
+//     type Theme = iced::Theme;
+//     type Executor = iced::executor::Default;
+//     type Flags = ();
+//     fn new(_flags: ()) -> (Self, iced::Command<TodoMessage>) {
+//         (
+//             Self {
+//                 todos: vec![],
+//                 value: String::new(),
+//             },
+//             Command::none(),
+//         )
+//     }
+//     fn title(&self) -> String {
+//         String::from("Todo List")
+//     }
+//     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+//         match message {
+//             TodoMessage::New => {
+//                 self.todos.push(Todo {
+//                     name: self.value.clone(),
+//                     checked: false,
+//                 });
+//                 self.value.clear();
+//             }
+//             TodoMessage::Check(name) => {
+//                 for n in self.todos.iter_mut() {
+//                     if n.name == name {
+//                         n.checked = !n.checked;
+//                     }
+//                 }
+//             }
+//             TodoMessage::Update(m) => {
+//                 self.value = m;
+//             }
+//             TodoMessage::Loaded => {}
+//         }
+//         Command::none()
+//     }
+//     fn view(&self) -> iced::Element<'_, Self::Message> {
+//         let input = TextInput::new("Todo", &self.value)
+//             .on_input(TodoMessage::Update)
+//             .on_submit(TodoMessage::New);
+//         let balls: iced::Element<_> = if self.todos.len() < 1 {
+//             Text::new("No things").into()
+//         } else {
+//             column(
+//                 self.todos
+//                     .iter()
+//                     .map(|f| {
+//                         Row::new()
+//                             .push(Text::new(f.name.clone() + &f.checked.to_string()))
+//                             .push(Button::new("Check").on_press(TodoMessage::Check(f.name.clone())))
+//                             .into()
+//                     })
+//                     .collect(),
+//             )
+//             .into()
+//         };
+//         Container::new(column(vec![input.into(), balls.into()]))
+//             .center_x()
+//             .center_y()
+//             .width(iced::Length::Fill)
+//             .height(iced::Length::Fill)
+//             .into()
+//     }
+//     fn subscription(&self) -> Subscription<TodoMessage> {
+//         subscription::events_with(|event, _status| match event {
+//             Event::Keyboard(keyboard_event) => match keyboard_event {
+//                 keyboard::Event::KeyPressed {
+//                     key_code: keyboard::KeyCode::Tab,
+//                     modifiers,
+//                 } => Some(if modifiers.shift() {
+//                     TodoMessage::New
+//                 } else {
+//                     TodoMessage::New
+//                 }),
+//                 _ => None,
+//             },
+//             _ => None,
+//         })
+//     }
+// }

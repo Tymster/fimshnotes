@@ -4,15 +4,15 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 #[derive(Debug)]
 pub struct Notes {
-    base: PathBuf,
-    path: PathBuf,
-    note: Option<Note>,
+    pub base: PathBuf,
+    pub path: PathBuf,
+    pub note: Option<Note>,
 }
 #[derive(Debug)]
-struct Note {
-    name: String,
-    content: String,
-    path: PathBuf,
+pub struct Note {
+    pub name: String,
+    pub content: String,
+    pub path: PathBuf,
 }
 impl Notes {
     pub fn new<T: Into<PathBuf> + Clone>(path: T) -> Result<Self> {
@@ -28,13 +28,37 @@ impl Notes {
         })
     }
     pub fn new_note(&self, name: &str) -> Result<()> {
-        println!("BALLS in {}", self.path.join(name).display());
-        if !PathBuf::from(name).exists() {
+        if !PathBuf::from(name).exists()
+            && match (
+                self.path.join(name).canonicalize(),
+                self.base.canonicalize(),
+            ) {
+                (Ok(path), Ok(base)) => path.starts_with(base),
+                _ => false,
+            }
+        {
             File::create(format!("{}/{name}.md", self.path.to_str().unwrap()))?;
             return Ok(());
         }
         Err("Note with that name already exsits".into())
     }
+    pub fn enter(&mut self, name: &str) -> Result<()> {
+        if !self.path.join(name).exists() {
+            return Err("No Folder with that name found".into());
+        } else if !match (
+            self.path.join(name).canonicalize(),
+            self.base.canonicalize(),
+        ) {
+            (Ok(path), Ok(base)) => path.starts_with(base),
+            _ => false,
+        } {
+            return Err("Cannot go furhter back than base".into());
+        } else {
+            self.path.push(name);
+            Ok(())
+        }
+    }
+
     pub fn new_folder(&self, name: &str) -> Result<()> {
         create_dir(self.path.join(name))?;
         Ok(())

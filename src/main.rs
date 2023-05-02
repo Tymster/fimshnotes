@@ -1,5 +1,5 @@
 mod notes;
-use iced::widget::{column, Text, TextInput};
+use iced::widget::{column, Button, Text, TextInput};
 use iced::{
     keyboard::{
         Event::{CharacterReceived, KeyPressed},
@@ -23,6 +23,8 @@ enum AppMessage {
     Event(iced_native::Event),
     SetPalleteMode(PalleteMode),
     NewNote,
+    NewFolder,
+    Save,
     RunCommand,
     UpdateCommand(String),
 }
@@ -30,8 +32,6 @@ enum AppMessage {
 enum PalleteMode {
     Hidden,
     Command,
-    RenameNote,
-    RenameFolder,
     NewNote,
     NewFolder,
 }
@@ -67,6 +67,17 @@ impl Application for App {
                 };
                 Command::none()
             }
+            Self::Message::NewFolder => {
+                match self.notes.new_folder(&self.pallete_input) {
+                    Ok(_) => {
+                        self.error = Some(String::from("Made note"));
+                        self.pallete_input = String::new();
+                        self.pallete_mode = PalleteMode::Hidden;
+                    }
+                    Err(e) => self.error = Some(e.to_string()),
+                }
+                Command::none()
+            }
             Self::Message::Event(e) => match e {
                 Keyboard(e) => match e {
                     KeyPressed {
@@ -85,7 +96,7 @@ impl Application for App {
                         key_code: KeyCode::F,
                         modifiers: Modifiers::CTRL,
                     } => Command::perform(async {}, |()| {
-                        Self::Message::SetPalleteMode(PalleteMode::NewNote)
+                        Self::Message::SetPalleteMode(PalleteMode::NewFolder)
                     }),
                     CharacterReceived(':') => Command::perform(async {}, |()| {
                         Self::Message::SetPalleteMode(PalleteMode::Command)
@@ -103,7 +114,26 @@ impl Application for App {
                 Command::none()
             }
             Self::Message::RunCommand => {
-                println!("RIUnning comman dof  {}", self.pallete_input);
+                let real = self.pallete_input.clone();
+                let input: Vec<&str> = real.split(" ").collect();
+                match input.get(0) {
+                    Some(&"cd") => {
+                        match self.notes.enter(
+                            &input
+                                .iter()
+                                .map(|f| f.to_string())
+                                .skip(1)
+                                .collect::<Vec<String>>()
+                                .join(" "),
+                        ) {
+                            Ok(_) => {}
+                            Err(e) => self.error = Some(e.to_string()),
+                        }
+                    }
+                    Some(&"open") => {}
+                    None => {}
+                    _ => {}
+                }
                 self.pallete_input = String::new();
                 Command::none()
             }
@@ -117,20 +147,39 @@ impl Application for App {
                 .on_input(Self::Message::UpdateCommand)
                 .id(iced::widget::text_input::Id::new("input"))
                 .into()],
-            PalleteMode::NewNote => vec![TextInput::new("Name", &self.pallete_input)
+            PalleteMode::NewNote => vec![TextInput::new("Name of note", &self.pallete_input)
                 .on_input(Self::Message::UpdateCommand)
                 .on_submit(Self::Message::NewNote)
                 .id(iced::widget::text_input::Id::new("input"))
                 .into()],
+            PalleteMode::NewFolder => vec![TextInput::new("Name of folder", &self.pallete_input)
+                .on_input(Self::Message::UpdateCommand)
+                .on_submit(Self::Message::NewFolder)
+                .id(iced::widget::text_input::Id::new("input"))
+                .into()],
+            PalleteMode::Hidden => vec![],
             _ => vec![],
         })
+        .into();
+        let tree = column(
+            self.notes
+                .path
+                .read_dir()
+                .unwrap()
+                .map(|f| {
+                    let name = f.unwrap();
+                    let balls: String = name.file_name().to_str().unwrap().to_string();
+                    Text::new(balls).into()
+                })
+                .collect(),
+        )
         .into();
         let error = match &self.error {
             Some(balls) => Text::new(balls),
             None => Text::new("COCK"),
         }
         .into();
-        column(vec![pallete, error]).into()
+        column(vec![pallete, error, tree]).into()
     }
     fn subscription(&self) -> Subscription<Self::Message> {
         iced_native::subscription::events().map(Self::Message::Event)
