@@ -24,7 +24,7 @@ enum AppMessage {
     SetPalleteMode(PalleteMode),
     NewNote,
     NewFolder,
-    Save,
+    Save(String),
     RunCommand,
     UpdateCommand(String),
 }
@@ -126,15 +126,37 @@ impl Application for App {
                                 .collect::<Vec<String>>()
                                 .join(" "),
                         ) {
-                            Ok(_) => {}
+                            Ok(_) => self.pallete_mode = PalleteMode::Hidden,
                             Err(e) => self.error = Some(e.to_string()),
                         }
                     }
-                    Some(&"open") => {}
+                    Some(&"open") => {
+                        match self.notes.open(
+                            &input
+                                .iter()
+                                .map(|f| f.to_string())
+                                .skip(1)
+                                .collect::<Vec<String>>()
+                                .join(" "),
+                        ) {
+                            Ok(_) => println!("OPENE"),
+                            Err(e) => self.error = Some(e.to_string()),
+                        }
+                    }
                     None => {}
                     _ => {}
                 }
                 self.pallete_input = String::new();
+                Command::none()
+            }
+            Self::Message::Save(content) => {
+                if let Some(note) = &mut self.notes.note {
+                    note.content = content;
+                    match self.notes.save() {
+                        Ok(_) => {}
+                        Err(e) => self.error = Some(e.to_string()),
+                    };
+                }
                 Command::none()
             }
             _ => Command::none(),
@@ -179,7 +201,14 @@ impl Application for App {
             None => Text::new("COCK"),
         }
         .into();
-        column(vec![pallete, error, tree]).into()
+        let editor = match &self.notes.note {
+            Some(note) => column(vec![TextInput::new("", &note.content)
+                .on_input(Self::Message::Save)
+                .into()]),
+            None => column(vec![Text::new("No note selected").into()]),
+        }
+        .into();
+        column(vec![pallete, error, tree, editor]).into()
     }
     fn subscription(&self) -> Subscription<Self::Message> {
         iced_native::subscription::events().map(Self::Message::Event)

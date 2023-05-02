@@ -1,5 +1,5 @@
 use crate::Result;
-use std::fs::{create_dir, create_dir_all, File};
+use std::fs::{create_dir, create_dir_all, read_to_string, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 #[derive(Debug)]
@@ -27,6 +27,12 @@ impl Notes {
             note: None,
         })
     }
+    pub fn save(&self) -> Result<()> {
+        if let Some(note) = &self.note {
+            File::create(&note.path)?.write(note.content.as_bytes())?;
+        }
+        Ok(())
+    }
     pub fn new_note(&self, name: &str) -> Result<()> {
         if !PathBuf::from(name).exists()
             && match (
@@ -52,15 +58,28 @@ impl Notes {
             (Ok(path), Ok(base)) => path.starts_with(base),
             _ => false,
         } {
+            println!("REAL");
             return Err("Cannot go furhter back than base".into());
+        } else if name == "" {
+            self.path = self.base.clone();
+            return Ok(());
         } else {
             self.path.push(name);
             Ok(())
         }
     }
-
     pub fn new_folder(&self, name: &str) -> Result<()> {
         create_dir(self.path.join(name))?;
+        Ok(())
+    }
+    pub fn open(&mut self, name: &str) -> Result<()> {
+        let mut path = self.path.join(name);
+        path.set_extension("md");
+        self.note = Some(Note {
+            name: name.clone().to_string(),
+            content: read_to_string(&path)?,
+            path: path.clone(),
+        });
         Ok(())
     }
 }
